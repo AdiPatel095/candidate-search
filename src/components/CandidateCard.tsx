@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { searchGithub } from '../api/API';
+import { searchGithub, searchGithubUser } from '../api/API';
 import '../card.css';
 
 interface ProfileProps {
@@ -18,11 +18,20 @@ const CandidateCard: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const fetchCandidates = async () => {
-    searchGithub().then((data) => {
+    searchGithub().then(async (data) => {
       if (!data || data.length === 0) return;
+      const fullData = await Promise.all(
+        data.map(async (user: any) => {
+          const newUserData = await searchGithubUser(user.login);
+          console.log('New User Data:', newUserData);
+          return newUserData;
+        })
+      );
+
+      console.log('Full Data:', fullData);
 
       // Convert each user object into the shape we need for our profile
-      const mappedCandidates: ProfileProps[] = data.map((user: any) => ({
+      const mappedCandidates: ProfileProps[] = fullData.map((user: any) => ({
         id: user.id,
         avatarUrl: user.avatar_url,
         name: user.name || 'No Name Provided',
@@ -87,7 +96,7 @@ const CandidateCard: React.FC = () => {
       const newIndex = prevIndex + 1;
       if (newIndex >= candidates.length) {
         fetchCandidates();
-        return prevIndex; // or reset to 0 if you want to wrap around
+        return 0; // or reset to 0 if you want to wrap around
       }
       return newIndex;
     });
